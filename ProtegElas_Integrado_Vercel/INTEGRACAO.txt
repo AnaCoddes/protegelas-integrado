@@ -1,0 +1,13 @@
+PROTEGELAS - INTEGRAÇÃO PARA TESTE NO VERCEL
+
+Objetivo desta pasta: testar as telas na web sem alterar a lógica original dos projetos.
+
+Integração realizada:
+- Estrutura Expo/Expo Router do projeto da Maria Fernanda mantida como base.
+- Tela inicial (index.tsx) mantida na versão já criada para o ProtegELAS e ligada ao formulário por /formulario.
+- Formulário da Gisele copiado sem alteração para src/app/formulario.tsx.
+- Logo usado pelo formulário da Gisele copiado para assets/images/logo-oficial.png.
+- Backend original da Gisele preservado separadamente em backend-gisele-original/.
+- vercel.json adicionado somente para gerar a versão web estática em dist/.
+
+Para o teste de hoje, o Vercel publica apenas o front-end/telas. O backend/Neon não é necessário para navegar entre a tela inicial e o formulário.
