@@ -1,0 +1,9 @@
+Bibliotecas instaladas (até o momento):
+
+* express - o framework em si que cria as rotas
+* dotenv - disponibiliza a connection string do banco para o código sem expor a senha
+* pg - "tradutor" do node para o postgres (neon); é ele quem executa os comandos SQL
+
+Do login das Pesquisadoras:
+* bcrypt - guardar a senha de forma segura criptografada (nunca salva a senha "pura" no banco)
+* jsonwebtoken - gera um token ("crachá") que confirma que a pesquisadora está logada
