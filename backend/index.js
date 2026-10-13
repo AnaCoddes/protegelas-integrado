@@ -18,10 +18,11 @@ const limiteRespostas  = rateLimit ({
 
 })
 
-// Verifica se quem está chamando GET / respostas tem o token válido
-// Se não houver token, retorna erro 401; se o token for inválido ou estiver expirado, também retorna 401; se for válido, executa next(), permitindo que a requisição continue para a rota.
+// Verifica se quem está chamando respostas tem o token válido
+// Se não houver token, o token for inválido e/ou tiver expirado, retorna erro 401; se for válido, executa next(), permitindo que a requisição continue para a rota.
+// Se a adm não existir mais no banco de dados, recusa o acesso mesmo que o token seja válido
 
-function verificarToken(req, res, next) {
+async function verificarToken(req, res, next) {
     const token = req.headers.authorization?.split(' ')[1];
 
     if (!token) {
@@ -29,7 +30,15 @@ function verificarToken(req, res, next) {
     }
 
     try {
-        jwt.verify(token, process.env.JWT_SECRET);
+        const dadosToken = jwt.verify(token, process.env.JWT_SECRET);
+        const resultado = await pool.query(
+            'SELECT id FROM pesquisadoras WHERE id = $1',
+            [dadosToken.id]
+        );
+
+        if (resultado.rows.length === 0) {
+            return res.status(401).json({erro: 'Pesquisadora/administradora não encontrada'});
+        }
         next();
     } catch (erro) {
         return res.status(401).json({erro: 'Token inválido'});
