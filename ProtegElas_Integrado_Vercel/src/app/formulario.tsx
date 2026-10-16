@@ -1,5 +1,5 @@
 // Forumlário com as perguntas
-
+import { router, useRouter } from "expo-router";
 import {
   Nunito_400Regular,
   Nunito_600SemiBold,
@@ -79,6 +79,7 @@ export default function Formulario() {
   });
 
   if (!fontsLoaded) {
+    const router = useRouter();
     return null;
   }
 
@@ -164,7 +165,8 @@ return (
             <TouchableOpacity
               style={styles.botaoEnviar}
               onPress={() => {
-                // Enviar respostas do formulário para o backend
+                  router.push("/resultado");
+                              
               }}
             >
               <Text style={styles.textoEnviar}>Enviar respostas</Text>
