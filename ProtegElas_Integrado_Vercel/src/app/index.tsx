@@ -34,8 +34,8 @@ export default function HomeScreen({ onStart }: Props) {
   const router = useRouter();
   const { width, height } = useWindowDimensions();
 
-const screenWidth = Platform.OS === 'web' ? Math.min(width, 390) : width;
-const screenHeight = height;
+  const screenWidth = Platform.OS === 'web' ? Math.min(width, 390) : width;
+  const screenHeight = height;
 
   const [fontsLoaded] = useFonts({ SpaceGrotesk_700Bold });
 
@@ -57,7 +57,6 @@ const screenHeight = height;
             width: screenWidth,
             height: patternHeight + waveHeight,
             backgroundColor: COLORS.lavender,
-
           }}
         >
           <SafeAreaView edges={['top']} style={styles.logoWrapper}>
@@ -87,23 +86,41 @@ const screenHeight = height;
           </Svg>
 
           <View style={styles.content}>
-            <Text style={styles.title}>Bem-vinda!</Text>
+            <View>
+              <Text style={styles.title}>Bem-vinda!</Text>
 
-            <Text style={styles.description}>
-              Esse questionário ajuda a identificar sinais de violência doméstica e risco de feminicídio no seu relacionamento.
-               Ao clicar no botão abaixo, você verá algumas frases. Marque aquelas que representam situações que você costuma vivenciar.
-            </Text>
+              <Text style={styles.description}>
+                Esse questionário ajuda a identificar sinais de violência doméstica e risco de feminicídio no seu relacionamento.
+                Ao clicar no botão abaixo, você verá algumas frases. Marque aquelas que representam situações que você costuma vivenciar.
+              </Text>
+            </View>
 
-            <Pressable
-              onPress={() => router.push('/formulario')}              accessibilityRole="button"
-              accessibilityLabel="Iniciar questionário"
-              style={({ pressed }) => [
-              styles.button,
-              pressed && { opacity: 0.85 },
-              ]}
-            >
-              <Text style={styles.buttonText}>INICIAR</Text>
-            </Pressable>
+            <View style={styles.actions}>
+              <Pressable
+                onPress={() => router.push('/formulario')}
+                accessibilityRole="button"
+                accessibilityLabel="Iniciar questionário"
+                style={({ pressed }) => [
+                  styles.button,
+                  pressed && { opacity: 0.85 },
+                ]}
+              >
+                <Text style={styles.buttonText}>INICIAR</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => router.push('/tela-login')}
+                accessibilityRole="link"
+                accessibilityLabel="Acesso restrito às pesquisadoras"
+                hitSlop={8}
+                style={({ pressed }) => [
+                  styles.researcherLink,
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <Text style={styles.researcherLinkText}>Área da pesquisadora</Text>
+              </Pressable>
+            </View>
           </View>
         </View>
       </View>
@@ -113,17 +130,17 @@ const screenHeight = height;
 
 const styles = StyleSheet.create({
   webWrapper: {
-  flex: 1,
-  alignItems: 'center',
-  backgroundColor: '#E5E5E5',
-},
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: '#E5E5E5',
+  },
 
-container: {
-  width: '100%',
-  maxWidth: 390,
-  flex: 1,
-  backgroundColor: COLORS.lavender,
-},
+  container: {
+    width: '100%',
+    maxWidth: 390,
+    flex: 1,
+    backgroundColor: COLORS.lavender,
+  },
 
   logoWrapper: {
     alignItems: 'center',
@@ -178,19 +195,37 @@ container: {
     color: COLORS.cream,
   },
 
-  button: {
-    alignSelf: 'center',
-    width: '85%',
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: COLORS.button,
-    alignItems: 'center',
+  actions: {
+    gap: 12,
+    marginTop: 16,
   },
 
-  buttonText: {
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 34,
-    letterSpacing: 1,
-    color: COLORS.cream,
-  },
+  button: {
+  alignSelf: 'center',
+  width: '70%',          // era '85%'
+  paddingVertical: 10,   // era 14
+  borderRadius: 12,
+  backgroundColor: COLORS.button,
+  alignItems: 'center',
+},
+
+buttonText: {
+  fontFamily: 'SpaceGrotesk_700Bold',
+  fontSize: 24,          // era 34
+  letterSpacing: 1,
+  color: COLORS.cream,
+},
+
+researcherLink: {
+  alignSelf: 'center',
+  paddingVertical: 10,
+  paddingHorizontal: 20,
+},
+
+researcherLinkText: {
+  fontFamily: 'SpaceGrotesk_700Bold',
+  fontSize: 18,          // era 13
+  color: COLORS.lavender,
+  textDecorationLine: 'underline',
+},
 });
