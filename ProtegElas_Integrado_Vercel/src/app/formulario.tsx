@@ -8,8 +8,15 @@ import {
   useFonts,
 } from "@expo-google-fonts/nunito";
 import { useState } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
+import * as Location from "expo-location";
 import { Image } from "react-native";
 import Setas from "./setas";
 
@@ -89,12 +96,28 @@ export default function Formulario() {
     }));
   }
 
+  async function pegarLocalizacao() {
+    // Aqui é onde solicita o acesso à localização
+    const { status } = await Location.requestForegroundPermissionsAsync();
+
+    if (status !== "granted") {
+      return null;
+    }
+
+    // Aqui é onde lê a posição
+    const posicao = await Location.getCurrentPositionAsync({});
+    return {
+      latitude: posicao.coords.latitude,
+      longitude: posicao.coords.longitude,
+    };
+  }
+
   const perguntasPagina = perguntas.slice(
     pagina * PERGUNTAS_POR_PAGINA,
-    pagina * PERGUNTAS_POR_PAGINA + PERGUNTAS_POR_PAGINA
+    pagina * PERGUNTAS_POR_PAGINA + PERGUNTAS_POR_PAGINA,
   );
 
-return (
+  return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.conteudo}
@@ -115,7 +138,9 @@ return (
 
       <Text style={styles.titulo}>Autoavaliação do Relacionamento</Text>
       <Text style={styles.descricao}>
-        Marque a seguir as situações que você identifica no seu relacionamento. Ao final, depois de enviar as respostas, você receberá informações sobre a situação de risco.
+        Marque a seguir as situações que você identifica no seu relacionamento.
+        Ao final, depois de enviar as respostas, você receberá informações sobre
+        a situação de risco.
       </Text>
 
       {perguntasPagina.map((pergunta) => (
@@ -163,7 +188,10 @@ return (
           ) : (
             <TouchableOpacity
               style={styles.botaoEnviar}
-              onPress={() => {
+              onPress={async () => {
+                const localizacao = await pegarLocalizacao();
+                console.log("Localização:", localizacao);
+
                 // Enviar respostas do formulário para o backend
               }}
             >
@@ -286,7 +314,7 @@ const styles = StyleSheet.create({
   },
 
   setaVoltar: {
-    transform: [{ scaleX: -1 }]
+    transform: [{ scaleX: -1 }],
   },
 
   pontoAtivo: {
