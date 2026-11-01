@@ -168,8 +168,10 @@ app.post('/pesquisadoras/login', limiteLogin, async (req, res) => {
     }
 });
 
-const PORTA = process.env.PORT || 3000;
-
-app.listen(PORTA, () => {
-    console.log(`Servidor rodando na porta ${PORTA}`);
-});
+if (require.main === module) {
+    const PORTA = process.env.PORT || 3000;
+    app.listen(PORTA, () => {
+        console.log(`Servidor rodando na porta ${PORTA}`);
+    });
+}
+module.exports = app;
