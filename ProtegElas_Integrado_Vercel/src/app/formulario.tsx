@@ -1,4 +1,4 @@
-// Forumlário com as perguntas
+// Formulário
 
 import {
   Nunito_400Regular,
