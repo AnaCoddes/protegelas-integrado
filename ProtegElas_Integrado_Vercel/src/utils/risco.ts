@@ -1,3 +1,5 @@
+import type { NivelRisco } from "./resultado";
+
 // Peso de cada pergunta, na MESMA ORDEM da lista de perguntas do formulário
 // 1 = risco moderado; 1,5 = risco grave; 2 = risco extremo
 
@@ -22,4 +24,16 @@ export function calcularPontuacao(
     });
 
     return total;
+}
+
+// Cortes: a partir de quantos pontos muda de nível. Serão testados valores PROVISÓRIOS, pois essa etapa precisa ser decidida pelas pesquisadoras
+// Necessário trocar os valores provisórios pelos valores REAIS/OFICIAIS das pesquisadoras futuramente
+const CORTE_GRAVE = 20;
+const CORTE_EXTREMO = 40;
+
+// Recebe a pontuação e devolve o nível de risco
+export function classificarNivel(pontuacao: number): NivelRisco {
+    if (pontuacao >= CORTE_EXTREMO) return "extremo";
+    if (pontuacao >= CORTE_GRAVE) return "grave";
+    return "moderado";
 }
