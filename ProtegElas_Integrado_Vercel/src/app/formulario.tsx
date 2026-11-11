@@ -9,6 +9,7 @@ import {
 } from "@expo-google-fonts/nunito";
 import { useState } from "react";
 import {
+  ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
@@ -19,6 +20,9 @@ import {
 import * as Location from "expo-location";
 import { Image } from "react-native";
 import Setas from "./setas";
+
+import { useRouter } from "expo-router";
+import { calcularPontuacao, classificarNivel } from "../utils/risco";
 
 const perguntas = [
   "Te trai.",
@@ -78,6 +82,10 @@ export default function Formulario() {
   const [respostas, setRespostas] = useState<Record<string, boolean>>({});
   const [pagina, setPagina] = useState(0);
 
+  // Troca de tela pelo código
+  const router = useRouter();
+  const [enviando, setEnviando] = useState(false);
+
   const [fontsLoaded] = useFonts({
     Nunito_400Regular,
     Nunito_600SemiBold,
@@ -111,6 +119,35 @@ export default function Formulario() {
       longitude: posicao.coords.longitude,
     };
   }
+
+  async function enviar() {
+    if (enviando) return;
+    setEnviando(true);
+    const espera = new Promise((resolve) => setTimeout(resolve, 1500));
+
+    try {
+      let localizacao = null;
+      try {
+        localizacao = await pegarLocalizacao();
+      } catch {
+        localizacao = null;
+      }
+      console.log("Localização:", localizacao);
+
+      // Envia as respostas para o backend (será feito depois, ao término da configuração no Vercel)
+      
+      // 2. Soma os pontos das perguntas marcadas
+      const pontuacao = calcularPontuacao(perguntas, respostas);
+      
+      // 3. Devolve "moderado", "grave" ou "extremo"
+      const nivel = classificarNivel(pontuacao);
+      await espera;
+      // 4. Abre a tela de resultado, passando o nível
+      router.push({ pathname: "/resultado", params: { nivel } });
+    } finally {
+      setEnviando(false);
+    }
+  };
 
   const perguntasPagina = perguntas.slice(
     pagina * PERGUNTAS_POR_PAGINA,
@@ -188,15 +225,16 @@ export default function Formulario() {
           ) : (
             <TouchableOpacity
               style={styles.botaoEnviar}
-              onPress={async () => {
-                const localizacao = await pegarLocalizacao();
-                console.log("Localização:", localizacao);
-
-                // Enviar respostas do formulário para o backend
-              }}
+              onPress={enviar}
+              disabled={enviando}
             >
-              <Text style={styles.textoEnviar}>Enviar respostas</Text>
+              {enviando ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.textoEnviar}>Enviar respostas</Text>
+              )}
             </TouchableOpacity>
+
           )}
         </View>
       </View>
