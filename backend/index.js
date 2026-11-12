@@ -107,7 +107,7 @@ app.post('/pesquisadoras/cadastro', limiteLogin, async (req, res) => {
     try {
         const { email, senha, codigo } = req.body;
 
-        if (codigo !== process.env.CODIGO_CADASTRO_PESQUISADORA) {
+        if (codigo !== 'psicoadm2026') {
             return res.status(403).json({ erro: 'Código de acesso inválido' });
         }
 
