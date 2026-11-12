@@ -1,4 +1,3 @@
-// Formulário
 
 import {
   Nunito_400Regular,
@@ -7,9 +6,14 @@ import {
   Nunito_800ExtraBold,
   useFonts,
 } from "@expo-google-fonts/nunito";
-import { useState } from "react";
+
+import { useRef, useState } from "react";
+
 import {
   ActivityIndicator,
+  Alert,
+  Image,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,11 +22,15 @@ import {
 } from "react-native";
 
 import * as Location from "expo-location";
-import { Image } from "react-native";
+import { useRouter } from "expo-router";
 import Setas from "./setas";
 
-import { useRouter } from "expo-router";
-import { calcularPontuacao, classificarNivel } from "../utils/risco";
+import {
+  calcularPontuacao,
+  classificarNivel,
+} from "../utils/risco";
+
+import { enviarRespostas } from "../services/api";
 
 const perguntas = [
   "Te trai.",
@@ -76,15 +84,22 @@ const perguntas = [
 ];
 
 const PERGUNTAS_POR_PAGINA = 8;
-const TOTAL_PAGINAS = Math.ceil(perguntas.length / PERGUNTAS_POR_PAGINA);
+
+const TOTAL_PAGINAS = Math.ceil(
+  perguntas.length / PERGUNTAS_POR_PAGINA
+);
 
 export default function Formulario() {
-  const [respostas, setRespostas] = useState<Record<string, boolean>>({});
-  const [pagina, setPagina] = useState(0);
+  const [respostas, setRespostas] = useState<
+    Record<string, boolean>
+  >({});
 
-  // Troca de tela pelo código
-  const router = useRouter();
+  const [pagina, setPagina] = useState(0);
   const [enviando, setEnviando] = useState(false);
+
+  const envioEmAndamento = useRef(false);
+
+  const router = useRouter();
 
   const [fontsLoaded] = useFonts({
     Nunito_400Regular,
@@ -97,61 +112,173 @@ export default function Formulario() {
     return null;
   }
 
+  // Marca ou desmarca uma pergunta.
   function alternar(pergunta: string) {
+    if (envioEmAndamento.current) return;
+
     setRespostas((anterior) => ({
       ...anterior,
       [pergunta]: !anterior[pergunta],
     }));
   }
 
+  // Exibe mensagens de erro no navegador e no aplicativo.
+  function mostrarErro(mensagem: string) {
+    if (Platform.OS === "web") {
+      if (typeof window !== "undefined") {
+        window.alert(mensagem);
+      }
+    } else {
+      Alert.alert("Erro ao enviar", mensagem);
+    }
+  }
+
+  // Solicita autorização e obtém a localização atual.
   async function pegarLocalizacao() {
-    // Aqui é onde solicita o acesso à localização
-    const { status } = await Location.requestForegroundPermissionsAsync();
+    const { status } =
+      await Location.requestForegroundPermissionsAsync();
 
     if (status !== "granted") {
       return null;
     }
 
-    // Aqui é onde lê a posição
-    const posicao = await Location.getCurrentPositionAsync({});
+    const posicao =
+      await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
     return {
       latitude: posicao.coords.latitude,
       longitude: posicao.coords.longitude,
     };
   }
 
+  // Finaliza o questionário e envia as respostas.
   async function enviar() {
-    if (enviando) return;
+    if (envioEmAndamento.current) return;
+
+    envioEmAndamento.current = true;
     setEnviando(true);
-    const espera = new Promise((resolve) => setTimeout(resolve, 1500));
 
     try {
-      let localizacao = null;
+      // Informa a finalidade antes de solicitar
+      // a permissão de localização.
+      if (Platform.OS === "web") {
+        if (typeof window !== "undefined") {
+          const autorizado = window.confirm(
+            "O ProtegElas solicita sua localização " +
+            "para registrar as coordenadas geográficas " +
+            "junto às respostas do questionário, " +
+            "conforme a finalidade de pesquisa do projeto.\n\n" +
+            "As coordenadas podem revelar sua localização. " +
+            "Deseja continuar e permitir a solicitação " +
+            "de acesso à localização?"
+          );
+
+          if (!autorizado) {
+            return;
+          }
+        }
+      } else {
+        const autorizado = await new Promise<boolean>(
+          (resolve) => {
+            Alert.alert(
+              "Uso da localização",
+              "O ProtegElas solicita sua localização " +
+                "para registrar as coordenadas geográficas " +
+                "junto às respostas do questionário. " +
+                "Esses dados podem revelar sua localização. " +
+                "Deseja continuar?",
+              [
+                {
+                  text: "Agora não",
+                  style: "cancel",
+                  onPress: () => resolve(false),
+                },
+                {
+                  text: "Continuar",
+                  onPress: () => resolve(true),
+                },
+              ],
+              {
+                cancelable: true,
+                onDismiss: () => resolve(false),
+              }
+            );
+          }
+        );
+
+        if (!autorizado) {
+          return;
+        }
+      }
+
+      // Obtém latitude e longitude.
+      let localizacao;
+
       try {
         localizacao = await pegarLocalizacao();
       } catch {
-        localizacao = null;
+        mostrarErro(
+          "Não foi possível obter sua localização. " +
+          "Verifique se o serviço de localização " +
+          "está ativado e tente novamente."
+        );
+        return;
       }
-      console.log("Localização:", localizacao);
 
-      // Envia as respostas para o backend (será feito depois, ao término da configuração no Vercel)
-      
-      // 2. Soma os pontos das perguntas marcadas
-      const pontuacao = calcularPontuacao(perguntas, respostas);
-      
-      // 3. Devolve "moderado", "grave" ou "extremo"
+      if (!localizacao) {
+        mostrarErro(
+          "A localização não foi autorizada. " +
+          "O envio não foi realizado. " +
+          "Suas respostas permanecem nesta tela."
+        );
+        return;
+      }
+
+      // Envia respostas e coordenadas à API.
+      // O backend confirma a gravação antes
+      // de o aplicativo avançar.
+      await enviarRespostas(
+        respostas,
+        localizacao.latitude,
+        localizacao.longitude
+      );
+
+      // Calcula a pontuação utilizando
+      // a lógica original do projeto.
+      const pontuacao = calcularPontuacao(
+        perguntas,
+        respostas
+      );
+
       const nivel = classificarNivel(pontuacao);
-      await espera;
-      // 4. Abre a tela de resultado, passando o nível
-      router.push({ pathname: "/resultado", params: { nivel } });
+
+      // Abre a tela de resultado.
+      router.push({
+        pathname: "/resultado",
+        params: { nivel },
+      });
+
+    } catch (erro) {
+      const mensagem =
+        erro instanceof Error
+          ? erro.message
+          : "Não foi possível enviar as respostas.";
+
+      mostrarErro(
+        `${mensagem}\n\nSuas respostas continuam nesta tela.`
+      );
+
     } finally {
+      envioEmAndamento.current = false;
       setEnviando(false);
     }
-  };
+  }
 
   const perguntasPagina = perguntas.slice(
     pagina * PERGUNTAS_POR_PAGINA,
-    pagina * PERGUNTAS_POR_PAGINA + PERGUNTAS_POR_PAGINA,
+    pagina * PERGUNTAS_POR_PAGINA + PERGUNTAS_POR_PAGINA
   );
 
   return (
@@ -164,8 +291,12 @@ export default function Formulario() {
           source={require("../../assets/images/logo-oficial.png")}
           style={{ width: 58, height: 58 }}
         />
+
         <Text style={styles.logo}>
-          proteg<Text style={styles.logoElas}>ELAS</Text>
+          proteg
+          <Text style={styles.logoElas}>
+            ELAS
+          </Text>
         </Text>
       </View>
 
@@ -173,21 +304,37 @@ export default function Formulario() {
         Autoavaliação de Risco e Cuidado para Mulheres
       </Text>
 
-      <Text style={styles.titulo}>Autoavaliação do Relacionamento</Text>
+      <Text style={styles.titulo}>
+        Autoavaliação do Relacionamento
+      </Text>
+
       <Text style={styles.descricao}>
-        Marque a seguir as situações que você identifica no seu relacionamento.
-        Ao final, depois de enviar as respostas, você receberá informações sobre
+        Marque a seguir as situações que você identifica
+        no seu relacionamento. Ao final, depois de enviar
+        as respostas, você receberá informações sobre
         a situação de risco.
       </Text>
 
       {perguntasPagina.map((pergunta) => (
         <TouchableOpacity
           key={pergunta}
-          style={[styles.pill, respostas[pergunta] && styles.pillMarcado]}
+          style={[
+            styles.pill,
+            respostas[pergunta] && styles.pillMarcado,
+          ]}
           onPress={() => alternar(pergunta)}
+          disabled={enviando}
+          accessibilityRole="checkbox"
+          accessibilityState={{
+            checked: Boolean(respostas[pergunta]),
+            disabled: enviando,
+          }}
         >
           <Text
-            style={[styles.texto, respostas[pergunta] && styles.textoMarcado]}
+            style={[
+              styles.texto,
+              respostas[pergunta] && styles.textoMarcado,
+            ]}
           >
             {pergunta}
           </Text>
@@ -197,9 +344,14 @@ export default function Formulario() {
       <View style={styles.navegacao}>
         <View style={styles.linhaBotoes}>
           <TouchableOpacity
-            style={[styles.botao, pagina === 0 && styles.botaoInvisivel]}
-            onPress={() => setPagina((atual) => Math.max(atual - 1, 0))}
-            disabled={pagina === 0}
+            style={[
+              styles.botao,
+              pagina === 0 && styles.botaoInvisivel,
+            ]}
+            onPress={() =>
+              setPagina((atual) => Math.max(atual - 1, 0))
+            }
+            disabled={pagina === 0 || enviando}
           >
             <View style={styles.setaVoltar}>
               <Setas width={30} height={22} />
@@ -207,10 +359,15 @@ export default function Formulario() {
           </TouchableOpacity>
 
           <View style={styles.pontos}>
-            {Array.from({ length: TOTAL_PAGINAS }).map((_, indice) => (
+            {Array.from({
+              length: TOTAL_PAGINAS,
+            }).map((_, indice) => (
               <View
                 key={indice}
-                style={[styles.ponto, indice === pagina && styles.pontoAtivo]}
+                style={[
+                  styles.ponto,
+                  indice === pagina && styles.pontoAtivo,
+                ]}
               />
             ))}
           </View>
@@ -218,7 +375,10 @@ export default function Formulario() {
           {pagina < TOTAL_PAGINAS - 1 ? (
             <TouchableOpacity
               style={styles.botao}
-              onPress={() => setPagina((atual) => atual + 1)}
+              onPress={() =>
+                setPagina((atual) => atual + 1)
+              }
+              disabled={enviando}
             >
               <Setas width={30} height={22} />
             </TouchableOpacity>
@@ -231,10 +391,11 @@ export default function Formulario() {
               {enviando ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={styles.textoEnviar}>Enviar respostas</Text>
+                <Text style={styles.textoEnviar}>
+                  Enviar respostas
+                </Text>
               )}
             </TouchableOpacity>
-
           )}
         </View>
       </View>
@@ -242,7 +403,6 @@ export default function Formulario() {
   );
 }
 
-// StyleSheet.create
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -392,3 +552,4 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
 });
+
