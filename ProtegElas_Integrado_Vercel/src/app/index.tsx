@@ -49,26 +49,24 @@ export default function HomeScreen({ onStart }: Props) {
       <View style={styles.container}>
         <StatusBar barStyle="light-content" />
 
-        {/* Padrão de flores do topo */}
-        <ImageBackground
-          source={require('./assets/images/flower.png')}
-          resizeMode="cover"
+        {/* Topo com o logo */}
+        <SafeAreaView
+          edges={['top']}
           style={{
             width: screenWidth,
-            height: patternHeight + waveHeight,
+            height: patternHeight,
+            paddingBottom: waveHeight,
             backgroundColor: COLORS.lavender,
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          <SafeAreaView edges={['top']} style={styles.logoWrapper}>
-            <View style={styles.logoBlob}>
-              <Image
-                source={require('./assets/images/simbolo.png')}
-                resizeMode="contain"
-                style={styles.logo}
-              />
-            </View>
-          </SafeAreaView>
-        </ImageBackground>
+          <Image
+            source={require('../../assets/images/logo-completa.png')}
+            resizeMode="contain"
+            style={{ width: screenWidth * 0.85, height: '100%' }}
+          />
+        </SafeAreaView>
 
         {/* Painel roxo com borda ondulada */}
         <View style={[styles.panel, { top: patternHeight }]}>
