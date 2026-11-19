@@ -226,7 +226,7 @@ export default function PainelScreen() {
 
                   <Text style={styles.sectionTitle}>Respostas</Text>
 
-                  {Object.entries(registro.respostas).map(
+                  {Object.entries(registro.respostas ??{}).map(
                     ([pergunta, resposta]) => (
                       <View
                         key={`${registro.id}-${pergunta}`}
