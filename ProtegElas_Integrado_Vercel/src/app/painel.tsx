@@ -126,17 +126,17 @@ export default function PainelScreen() {
     ? Math.min(width, 760)
     : width;
 
-  return (
-    <View style={styles.webWrapper}>
-      <StatusBar barStyle="light-content" />
+    return (
+      <View style={styles.webWrapper}>
+        <StatusBar barStyle="light-content" />
 
-      <SafeAreaView style={[styles.container, { width: screenWidth }]}>
-        <View style={styles.header}>
-          <Image
-            source={require('./assets/images/simbolo.png')}
-            resizeMode="contain"
-            style={styles.logo}
-          />
+        <SafeAreaView style={[styles.container, { width: screenWidth }]}>
+          <View style={styles.header}>
+           <Image
+              source={require('./assets/images/simbolo.png')}
+              resizeMode="contain"
+              style={styles.logo}
+      />
 
           <View style={styles.headerText}>
             <Text style={styles.title}>Painel de respostas</Text>
